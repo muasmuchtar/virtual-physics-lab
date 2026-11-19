@@ -1,0 +1,45 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Simple Harmonic Motion</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:radial-gradient(circle at 10% 0,#174166 0,transparent 28%),linear-gradient(135deg,#06101d,#091827);color:#eef7ff}
+.app{max-width:1500px;margin:auto;padding:18px}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.head h1{margin:0;font-size:27px}.sub{color:#9db5cb;font-size:13px}
+.grid{display:grid;grid-template-columns:310px 1fr 350px;gap:14px}.card{background:#0d2237;border:1px solid #24445f;border-radius:18px;overflow:hidden}.ch{padding:14px 16px;border-bottom:1px solid #24445f;font-weight:800}.cb{padding:15px}
+.ctrl{margin-bottom:14px}.ctrl label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}.val{color:#31d6c5;font-weight:800}input[type=range]{width:100%;accent-color:#31d6c5}select,button{background:#102b45;border:1px solid #315572;color:white;padding:9px 12px;border-radius:10px;cursor:pointer}select{width:100%}.primary{background:linear-gradient(135deg,#1faaa1,#278be8);border:0}
+.sim{height:540px;position:relative;background:linear-gradient(#16324a 1px,transparent 1px),linear-gradient(90deg,#16324a 1px,transparent 1px),#081725;background-size:40px 40px}.sim canvas,.chart canvas{width:100%;height:100%;display:block}
+.bar{padding:12px;display:flex;gap:8px;flex-wrap:wrap}.badges{position:absolute;top:12px;left:12px;display:flex;gap:7px;flex-wrap:wrap}.badge{background:#06131ddd;border:1px solid #315572;padding:7px 9px;border-radius:9px;font-size:12px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{background:#081a2a;border:1px solid #24445f;border-radius:11px;padding:10px}.stat small{display:block;color:#9db5cb}.stat strong{font-size:18px}
+.formula{margin-top:12px;border-left:3px solid #31d6c5;background:#081927;padding:11px;border-radius:9px;font-family:Consolas,monospace;line-height:1.6;font-size:12px}.chart{height:235px;margin-top:12px}
+.table{max-height:220px;overflow:auto;margin-top:12px;border:1px solid #24445f;border-radius:10px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:7px;border-bottom:1px solid #1a354d;text-align:right}th:first-child,td:first-child{text-align:left}
+footer{text-align:center;color:#7893aa;padding:16px;font-size:12px}
+@media(max-width:1100px){.grid{grid-template-columns:290px 1fr}.right{grid-column:1/-1}}@media(max-width:720px){.grid{grid-template-columns:1fr}.right{grid-column:auto}.head{flex-direction:column;align-items:flex-start}.sim{height:450px}}
+</style>
+</head><body>
+<div class="app"><div class="head"><div><h1>17 — Simple Harmonic Motion (SHM)</h1><div class="sub">Displacement • Velocity • Acceleration • Energy</div></div><button id="csv">Export CSV</button></div>
+<div class="grid">
+<section class="card"><div class="ch">Parameter Eksperimen</div><div class="cb">
+<div class="ctrl"><label>Amplitudo A <span class="val" id="Av"></span></label><input id="A" type="range" min=".1" max="2" value="1" step=".05"></div>
+<div class="ctrl"><label>Frekuensi f <span class="val" id="fv"></span></label><input id="f" type="range" min=".2" max="3" value="1" step=".05"></div>
+<div class="ctrl"><label>Fase φ <span class="val" id="phiv"></span></label><input id="phi" type="range" min="0" max="360" value="0" step="5"></div>
+<div class="ctrl"><label>Massa m <span class="val" id="mv"></span></label><input id="m" type="range" min=".5" max="10" value="2" step=".5"></div>
+<div class="ctrl"><label>Kecepatan animasi <span class="val" id="tsv"></span></label><input id="ts" type="range" min=".2" max="3" value="1" step=".1"></div>
+</div></section>
+<section class="card"><div class="ch">Simulasi Real-Time</div><div class="sim"><canvas id="c"></canvas><div class="badges"><div class="badge">x=<span id="xn"></span> m</div><div class="badge">v=<span id="vn"></span> m/s</div><div class="badge">a=<span id="an"></span> m/s²</div></div></div>
+<div class="bar"><button class="primary" id="play">▶ Play</button><button id="pause">⏸ Pause</button><button id="step">⏭ Step</button><button id="reset">↺ Reset</button><button id="record">＋ Record</button></div></section>
+<section class="card right"><div class="ch">Hasil & Analisis</div><div class="cb">
+<div class="stats"><div class="stat"><small>ω</small><strong id="om"></strong></div><div class="stat"><small>Periode T</small><strong id="T"></strong></div><div class="stat"><small>v maks</small><strong id="vmax"></strong></div><div class="stat"><small>a maks</small><strong id="amax"></strong></div><div class="stat"><small>k ekuivalen</small><strong id="k"></strong></div><div class="stat"><small>Energi total</small><strong id="E"></strong></div></div>
+<div class="formula">x = A cos(ωt + φ)<br>v = −Aω sin(ωt + φ)<br>a = −ω²x<br>T = 1/f<br>E = ½mω²A²</div>
+<div class="chart"><canvas id="g"></canvas></div><div class="table"><table><thead><tr><th>#</th><th>A</th><th>f</th><th>m</th><th>vmax</th><th>amax</th></tr></thead><tbody id="tb"></tbody></table></div>
+</div></section></div><footer>Virtual Physics Lab • Simple Harmonic Motion • Offline</footer></div>
+<script>
+const $=i=>document.getElementById(i),c=$('c'),ctx=c.getContext('2d'),g=$('g'),gx=g.getContext('2d');let t=0,last=performance.now(),run=true,rows=[];
+function q(){let A=+$('A').value,f=+$('f').value,phi=+$('phi').value*Math.PI/180,m=+$('m').value,ts=+$('ts').value,w=2*Math.PI*f,T=1/f,k=m*w*w,E=.5*k*A*A;return{A,f,phi,m,ts,w,T,k,E}}
+function state(){let z=q(),th=z.w*t+z.phi,x=z.A*Math.cos(th),v=-z.A*z.w*Math.sin(th),a=-z.w*z.w*x;return{z,x,v,a}}
+function resize(){let D=Math.min(devicePixelRatio||1,2),r=c.getBoundingClientRect();c.width=r.width*D;c.height=r.height*D;ctx.setTransform(D,0,0,D,0,0);r=g.getBoundingClientRect();g.width=r.width*D;g.height=r.height*D;gx.setTransform(D,0,0,D,0,0);draw();chart()}
+function draw(){let W=c.clientWidth,H=c.clientHeight,s=state(),eq=W/2,scale=Math.min(170,W*.18),px=eq+s.x/s.z.A*scale,cy=H/2;ctx.clearRect(0,0,W,H);ctx.strokeStyle='#6f8ca6';ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(eq,cy-100);ctx.lineTo(eq,cy+100);ctx.stroke();ctx.setLineDash([]);ctx.strokeStyle='#dbe9f5';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(60,cy);let turns=14;for(let i=1;i<=turns*2;i++){let xx=60+(px-100-60)*i/(turns*2+1),yy=cy+(i%2?18:-18);ctx.lineTo(xx,yy)}ctx.lineTo(px-40,cy);ctx.stroke();ctx.fillStyle='#ffd166';ctx.fillRect(px-40,cy-35,80,70);$('xn').textContent=s.x.toFixed(3);$('vn').textContent=s.v.toFixed(3);$('an').textContent=s.a.toFixed(3)}
+function update(){let z=q();$('Av').textContent=z.A.toFixed(2)+' m';$('fv').textContent=z.f.toFixed(2)+' Hz';$('phiv').textContent=($('phi').value)+'°';$('mv').textContent=z.m.toFixed(1)+' kg';$('tsv').textContent=z.ts.toFixed(1)+'×';$('om').textContent=z.w.toFixed(2)+' rad/s';$('T').textContent=z.T.toFixed(2)+' s';$('vmax').textContent=(z.A*z.w).toFixed(2)+' m/s';$('amax').textContent=(z.A*z.w*z.w).toFixed(2)+' m/s²';$('k').textContent=z.k.toFixed(1)+' N/m';$('E').textContent=z.E.toFixed(2)+' J';draw();chart()}
+function chart(){let W=g.clientWidth,H=g.clientHeight,p=30,z=q();gx.clearRect(0,0,W,H);gx.strokeStyle='#29465f';gx.beginPath();gx.moveTo(p,10);gx.lineTo(p,H-p);gx.lineTo(W-10,H-p);gx.stroke();gx.strokeStyle='#31d6c5';gx.beginPath();for(let i=0;i<=120;i++){let tt=i/120*3*z.T,val=Math.cos(z.w*tt+z.phi),X=p+i/120*(W-p-12),Y=H/2-val*(H*.32);if(i)gx.lineTo(X,Y);else gx.moveTo(X,Y)}gx.stroke()}
+function loop(n){let dt=Math.min((n-last)/1000,.04);last=n;if(run){t+=dt*q().ts;draw()}requestAnimationFrame(loop)}
+$('play').onclick=()=>{run=true;last=performance.now()};$('pause').onclick=()=>run=!run;$('step').onclick=()=>{run=false;t+=.02;draw()};$('reset').onclick=()=>{t=0;run=true;draw()};['A','f','phi','m','ts'].forEach(i=>$(i).oninput=update);
+$('record').onclick=()=>{let z=q();rows.push(z);$('tb').innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.A}</td><td>${r.f}</td><td>${r.m}</td><td>${(r.A*r.w).toFixed(2)}</td><td>${(r.A*r.w*r.w).toFixed(2)}</td></tr>`).join('')};
+$('csv').onclick=()=>{if(!rows.length)$('record').click();let s='No,A_m,f_Hz,m_kg,vmax,amax\n'+rows.map((r,i)=>[i+1,r.A,r.f,r.m,r.A*r.w,r.A*r.w*r.w].join(',')).join('\n'),b=new Blob([s],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='simple_harmonic_motion.csv';a.click()};
+new ResizeObserver(resize).observe(document.body);update();requestAnimationFrame(loop);
+</script></body></html>

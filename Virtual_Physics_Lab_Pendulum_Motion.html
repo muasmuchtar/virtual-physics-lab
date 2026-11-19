@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virtual Physics Lab — Pendulum Motion</title>
+<style>
+:root{--bg:#07111f;--p:#0f1d31;--p2:#132841;--line:#24425f;--txt:#eaf4ff;--mut:#9db3c9;--a:#2ed3c4;--b:#5ca8ff;--y:#ffd166;--r:#ff7f9b}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial;background:radial-gradient(circle at 10% 0,#153d65 0,transparent 28%),linear-gradient(135deg,#06101d,#091827 60%,#06111d);color:var(--txt)}
+.app{max-width:1600px;margin:auto;padding:18px}.head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.brand{display:flex;gap:12px;align-items:center}
+.logo{width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,var(--b),var(--a));display:grid;place-items:center;color:#06131d;font-weight:900}.head h1{margin:0;font-size:28px}.sub{font-size:13px;color:var(--mut);margin-top:4px}
+button,select{background:#10233a;border:1px solid var(--line);color:var(--txt);border-radius:11px;padding:9px 12px;cursor:pointer}button:hover{border-color:#4f7da7}.primary{background:linear-gradient(135deg,#18aba1,#268be8);border:0;font-weight:800}
+.grid{display:grid;grid-template-columns:320px minmax(0,1fr) 340px;gap:14px}.card{background:linear-gradient(180deg,rgba(19,40,65,.95),rgba(10,26,43,.96));border:1px solid #203e5d;border-radius:18px;overflow:hidden;box-shadow:0 18px 45px rgba(0,0,0,.28)}
+.ch{padding:14px 16px;border-bottom:1px solid var(--line);font-weight:800;display:flex;justify-content:space-between}.cb{padding:15px}.ctrl{margin-bottom:16px}.ctrl label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px}.v{color:var(--a);font-weight:800}input[type=range]{width:100%;accent-color:var(--a)}
+.canvas{position:relative;height:570px;background:linear-gradient(#112b4580 1px,transparent 1px),linear-gradient(90deg,#112b4580 1px,transparent 1px),radial-gradient(circle at 50% 15%,#173b61,#081522 68%);background-size:40px 40px,40px 40px,auto}
+#sim{width:100%;height:100%;display:block}.ov{position:absolute;left:12px;top:12px;display:flex;gap:7px;flex-wrap:wrap}.badge{font-size:12px;background:#071522d8;border:1px solid #315271;border-radius:9px;padding:7px 9px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;padding:12px;border-top:1px solid var(--line)}.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{padding:11px;background:#0a1a2a;border:1px solid #203e5d;border-radius:12px}.stat small{display:block;color:var(--mut);margin-bottom:4px}.stat strong{font-size:19px}
+.formula{margin-top:11px;padding:11px;background:#091928;border-left:3px solid var(--a);border-radius:11px;font-family:Consolas,monospace;font-size:12.5px;line-height:1.55}
+.chartbox{height:250px;margin-top:12px}.chartbox canvas{width:100%;height:100%}.tog{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:13px;margin:8px 0}.tog input{accent-color:var(--a)}
+.table{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:11px;margin-top:10px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{padding:8px;border-bottom:1px solid #18334c;text-align:right}th:first-child,td:first-child{text-align:left}th{position:sticky;top:0;background:#10253b}
+.help{font-size:12.5px;color:#bbcee0;line-height:1.55}.help b{color:white}footer{text-align:center;color:#708da7;font-size:12px;padding:17px}
+@media(max-width:1150px){.grid{grid-template-columns:300px 1fr}.right{grid-column:1/-1}.right .cb{display:grid;grid-template-columns:1fr 1fr;gap:14px}}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.right{grid-column:auto}.right .cb{display:block}.canvas{height:470px}.head{align-items:flex-start;flex-direction:column}.head h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="head">
+ <div class="brand"><div class="logo">θ</div><div><h1 id="title">Virtual Physics Lab — Gerak Bandul</h1><div class="sub" id="sub">Pendulum Motion • Simple Harmonic Motion • Small-angle approximation</div></div></div>
+ <div><button id="lang">EN / ID</button> <button id="export">Export CSV</button> <button id="clear">Clear Records</button></div>
+</div>
+<div class="grid">
+ <section class="card"><div class="ch"><span id="pTitle">Parameter Eksperimen</span><span>⚙</span></div><div class="cb">
+  <div class="ctrl"><label><span id="lLab">Panjang tali L</span><span class="v" id="lVal">1.50 m</span></label><input id="L" type="range" min=".25" max="5" value="1.5" step=".05"></div>
+  <div class="ctrl"><label><span id="aLab">Sudut awal θ₀</span><span class="v" id="aVal">25°</span></label><input id="A" type="range" min="2" max="70" value="25" step="1"></div>
+  <div class="ctrl"><label><span id="gLab">Gravitasi g</span><span class="v" id="gVal">9.81 m/s²</span></label><input id="G" type="range" min="1" max="25" value="9.81" step=".01"></div>
+  <div class="ctrl"><label><span id="mLab">Massa bob m</span><span class="v" id="mVal">1.0 kg</span></label><input id="M" type="range" min=".1" max="5" value="1" step=".1"></div>
+  <div class="ctrl"><label><span id="dLab">Redaman damping</span><span class="v" id="dVal">0.00</span></label><input id="D" type="range" min="0" max=".3" value="0" step=".01"></div>
+  <div class="ctrl"><label><span id="sLab">Kecepatan animasi</span><span class="v" id="sVal">1.0×</span></label><input id="S" type="range" min=".2" max="3" value="1" step=".1"></div>
+  <div class="ctrl"><label><span id="planetLab">Preset gravitasi</span></label><select id="planet"><option value="9.81">Bumi / Earth</option><option value="1.62">Bulan / Moon</option><option value="3.71">Mars</option><option value="8.87">Venus</option><option value="24.79">Jupiter</option><option value="custom">Custom</option></select></div>
+  <label class="tog"><input type="checkbox" id="trail" checked><span id="trailLab">Jejak bob</span></label>
+  <label class="tog"><input type="checkbox" id="vectors" checked><span id="vecLab">Vektor gaya</span></label>
+  <div class="help"><b id="conceptH">Konsep:</b><span id="conceptT"> periode bandul ideal terutama ditentukan oleh panjang tali dan gravitasi; untuk sudut kecil, massa tidak memengaruhi periode.</span></div>
+ </div></section>
+
+ <section class="card"><div class="ch"><span id="simTitle">Simulasi Real-Time</span><span id="state">READY</span></div>
+  <div class="canvas"><canvas id="sim"></canvas><div class="ov">
+   <div class="badge">t = <span id="tn">0.00</span> s</div><div class="badge">θ = <span id="thn">25.00</span>°</div>
+   <div class="badge">ω = <span id="wn">0.00</span> rad/s</div><div class="badge">E = <span id="en">0.00</span> J</div>
+  </div></div>
+  <div class="bar"><button class="primary" id="start">▶ Start</button><button id="pause">⏸ Pause</button><button id="step">⏭ Step</button><button id="reset">↺ Reset</button><button id="record">＋ Record Data</button></div>
+ </section>
+
+ <section class="card right"><div class="ch"><span id="resTitle">Hasil & Analisis</span><span>∑</span></div><div class="cb">
+   <div><div class="stats">
+    <div class="stat"><small id="periodLab">Periode teoritis</small><strong id="period">2.46 s</strong></div>
+    <div class="stat"><small id="freqLab">Frekuensi</small><strong id="freq">0.41 Hz</strong></div>
+    <div class="stat"><small id="vmaxLab">Kecepatan maks.</small><strong id="vmax">1.68 m/s</strong></div>
+    <div class="stat"><small id="emaxLab">Energi awal</small><strong id="emax">1.37 J</strong></div>
+   </div>
+   <div class="formula">T ≈ 2π√(L/g)<br>θ¨ + (g/L) sin θ + cθ˙ = 0<br>v = Lω<br>E = ½m(Lω)² + mgL(1−cosθ)</div></div>
+   <div><div class="chartbox"><canvas id="chart"></canvas></div></div>
+   <div style="grid-column:1/-1"><div class="ch" style="padding:12px 0;border:0"><span id="recTitle">Rekaman Eksperimen</span><span id="count">0 data</span></div>
+    <div class="table"><table><thead><tr><th>#</th><th>L</th><th>θ₀</th><th>g</th><th>T</th><th>f</th><th>E₀</th></tr></thead><tbody id="tbody"><tr><td colspan="7" style="text-align:center;color:#7893ad">Belum ada data.</td></tr></tbody></table></div>
+   </div>
+  </div></section>
+</div>
+<footer>Virtual Physics Lab • Pendulum Motion • HTML5 Canvas + JavaScript • Offline ready</footer>
+</div>
+<script>
+const $=i=>document.getElementById(i),cv=$('sim'),x=cv.getContext('2d'),cc=$('chart').getContext('2d');
+let DPR=Math.min(devicePixelRatio||1,2),lang='id',run=false,paused=false,t=0,last=0,theta=25*Math.PI/180,omega=0,trail=[],hist=[],rows=[],raf;
+const tx={id:{title:'Virtual Physics Lab — Gerak Bandul',sub:'Pendulum Motion • Simple Harmonic Motion • Aproksimasi sudut kecil',pTitle:'Parameter Eksperimen',lLab:'Panjang tali L',aLab:'Sudut awal θ₀',gLab:'Gravitasi g',mLab:'Massa bob m',dLab:'Redaman damping',sLab:'Kecepatan animasi',planetLab:'Preset gravitasi',trailLab:'Jejak bob',vecLab:'Vektor gaya',conceptH:'Konsep:',conceptT:' periode bandul ideal terutama ditentukan oleh panjang tali dan gravitasi; untuk sudut kecil, massa tidak memengaruhi periode.',simTitle:'Simulasi Real-Time',resTitle:'Hasil & Analisis',periodLab:'Periode teoritis',freqLab:'Frekuensi',vmaxLab:'Kecepatan maks.',emaxLab:'Energi awal',recTitle:'Rekaman Eksperimen',none:'Belum ada data.'},
+en:{title:'Virtual Physics Lab — Pendulum Motion',sub:'Pendulum Motion • Simple Harmonic Motion • Small-angle approximation',pTitle:'Experiment Parameters',lLab:'String length L',aLab:'Initial angle θ₀',gLab:'Gravity g',mLab:'Bob mass m',dLab:'Damping',sLab:'Animation speed',planetLab:'Gravity preset',trailLab:'Bob trail',vecLab:'Force vectors',conceptH:'Concept:',conceptT:' the period of an ideal pendulum mainly depends on string length and gravity; for small angles, mass does not affect the period.',simTitle:'Real-Time Simulation',resTitle:'Results & Analysis',periodLab:'Theoretical period',freqLab:'Frequency',vmaxLab:'Maximum speed',emaxLab:'Initial energy',recTitle:'Experiment Records',none:'No data yet.'}};
+function v(){return{L:+$('L').value,A:+$('A').value,G:+$('G').value,M:+$('M').value,D:+$('D').value,S:+$('S').value}}
+function metrics(){let q=v(),a=q.A*Math.PI/180,T=2*Math.PI*Math.sqrt(q.L/q.G),f=1/T,vm=Math.sqrt(Math.max(0,2*q.G*q.L*(1-Math.cos(a)))),E=q.M*q.G*q.L*(1-Math.cos(a));return{T,f,vm,E}}
+function labels(){let q=v(),m=metrics();$('lVal').textContent=q.L.toFixed(2)+' m';$('aVal').textContent=q.A.toFixed(0)+'°';$('gVal').textContent=q.G.toFixed(2)+' m/s²';$('mVal').textContent=q.M.toFixed(1)+' kg';$('dVal').textContent=q.D.toFixed(2);$('sVal').textContent=q.S.toFixed(1)+'×';$('period').textContent=m.T.toFixed(2)+' s';$('freq').textContent=m.f.toFixed(2)+' Hz';$('vmax').textContent=m.vm.toFixed(2)+' m/s';$('emax').textContent=m.E.toFixed(2)+' J';
+Object.keys(tx[lang]).forEach(k=>{if($(k))$(k).textContent=tx[lang][k]});draw();chart()}
+function resize(){let r=cv.getBoundingClientRect();cv.width=r.width*DPR;cv.height=r.height*DPR;x.setTransform(DPR,0,0,DPR,0,0);let c=$('chart').getBoundingClientRect();$('chart').width=c.width*DPR;$('chart').height=c.height*DPR;cc.setTransform(DPR,0,0,DPR,0,0);draw();chart()}
+function pos(){let q=v(),w=cv.clientWidth,h=cv.clientHeight,piv={x:w/2,y:70},scale=Math.min((h-150)/(q.L),180);let len=q.L*scale;return{piv,bob:{x:piv.x+len*Math.sin(theta),y:piv.y+len*Math.cos(theta)},len}}
+function draw(){let w=cv.clientWidth,h=cv.clientHeight;x.clearRect(0,0,w,h);let p=pos(),q=v();
+x.strokeStyle='#738da6';x.lineWidth=6;x.beginPath();x.moveTo(w/2-70,42);x.lineTo(w/2+70,42);x.stroke();
+x.strokeStyle='#d7e8f5';x.lineWidth=2.3;x.beginPath();x.moveTo(p.piv.x,p.piv.y);x.lineTo(p.bob.x,p.bob.y);x.stroke();
+if($('trail').checked&&trail.length){x.strokeStyle='#2ed3c4';x.lineWidth=2;x.beginPath();trail.forEach((a,i)=>i?x.lineTo(a.x,a.y):x.moveTo(a.x,a.y));x.stroke()}
+x.fillStyle='#ffd166';x.shadowBlur=18;x.shadowColor='#ffd166';x.beginPath();x.arc(p.bob.x,p.bob.y,18+q.M*1.8,0,Math.PI*2);x.fill();x.shadowBlur=0;
+x.fillStyle='#bcd1e2';x.font='12px Segoe UI';x.fillText('θ',p.piv.x+14,p.piv.y+28);
+x.strokeStyle='#5ca8ff';x.lineWidth=2;x.beginPath();x.arc(p.piv.x,p.piv.y,38,Math.PI/2-theta,Math.PI/2);x.stroke();
+if($('vectors').checked){
+ let sc=10,grav=55;x.strokeStyle='#ff7f9b';x.fillStyle='#ff7f9b';x.lineWidth=2;x.beginPath();x.moveTo(p.bob.x,p.bob.y);x.lineTo(p.bob.x,p.bob.y+grav);x.stroke();x.fillText('mg',p.bob.x+5,p.bob.y+grav);
+ let dx=p.piv.x-p.bob.x,dy=p.piv.y-p.bob.y,mag=Math.hypot(dx,dy)||1;x.strokeStyle='#5ca8ff';x.beginPath();x.moveTo(p.bob.x,p.bob.y);x.lineTo(p.bob.x+dx/mag*55,p.bob.y+dy/mag*55);x.stroke();x.fillStyle='#5ca8ff';x.fillText('T',p.bob.x+dx/mag*62,p.bob.y+dy/mag*62)
+}
+let E=.5*q.M*(q.L*omega)**2+q.M*q.G*q.L*(1-Math.cos(theta));$('tn').textContent=t.toFixed(2);$('thn').textContent=(theta*180/Math.PI).toFixed(2);$('wn').textContent=omega.toFixed(2);$('en').textContent=E.toFixed(2)
+}
+function chart(){let c=$('chart'),w=c.clientWidth,h=c.clientHeight,p=34;cc.clearRect(0,0,w,h);cc.strokeStyle='#29465f';cc.beginPath();cc.moveTo(p,10);cc.lineTo(p,h-p);cc.lineTo(w-10,h-p);cc.stroke();if(!hist.length)return;let maxT=Math.max(10,hist[hist.length-1].t),maxA=Math.max(v().A,5);cc.strokeStyle='#2ed3c4';cc.lineWidth=2;cc.beginPath();hist.forEach((r,i)=>{let px=p+r.t/maxT*(w-p-12),py=(h-p)/2-r.a/maxA*((h-p-20)/2);i?cc.lineTo(px,py):cc.moveTo(px,py)});cc.stroke();cc.fillStyle='#9db5ca';cc.font='11px Segoe UI';cc.fillText('θ(t)',p+5,16);cc.fillText('time',w-40,h-8)}
+function reset(){cancelAnimationFrame(raf);run=false;paused=false;t=0;theta=v().A*Math.PI/180;omega=0;trail=[];hist=[];$('state').textContent='READY';$('pause').textContent='⏸ Pause';draw();chart()}
+function integrate(dt){let q=v(),acc=-(q.G/q.L)*Math.sin(theta)-q.D*omega;omega+=acc*dt;theta+=omega*dt;t+=dt;let p=pos();trail.push({x:p.bob.x,y:p.bob.y});if(trail.length>800)trail.shift();hist.push({t,a:theta*180/Math.PI});if(hist.length>1200)hist.shift()}
+function loop(now){if(!run||paused)return;let dt=Math.min((now-last)/1000,.03)*v().S;last=now;for(let i=0;i<3;i++)integrate(dt/3);draw();chart();raf=requestAnimationFrame(loop)}
+function start(){reset();run=true;$('state').textContent='RUNNING';last=performance.now();raf=requestAnimationFrame(loop)}
+$('start').onclick=start;$('pause').onclick=()=>{if(!run&&t===0)return;paused=!paused;$('state').textContent=paused?'PAUSED':'RUNNING';$('pause').textContent=paused?'▶ Resume':'⏸ Pause';if(!paused){run=true;last=performance.now();raf=requestAnimationFrame(loop)}else cancelAnimationFrame(raf)};
+$('step').onclick=()=>{if(run){paused=true;cancelAnimationFrame(raf)};integrate(.02);$('state').textContent='STEP';draw();chart()};$('reset').onclick=reset;
+['L','A','G','M','D','S','trail','vectors'].forEach(i=>$(i).addEventListener('input',()=>{if(i!=='S')reset();labels()}));
+$('planet').onchange=e=>{if(e.target.value!=='custom'){$('G').value=e.target.value;reset();labels()}};
+function render(){let b=$('tbody');$('count').textContent=rows.length+' data';if(!rows.length){b.innerHTML=`<tr><td colspan="7" style="text-align:center;color:#7893ad">${tx[lang].none}</td></tr>`;return}b.innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.L.toFixed(2)}</td><td>${r.A.toFixed(0)}°</td><td>${r.G.toFixed(2)}</td><td>${r.T.toFixed(2)}</td><td>${r.f.toFixed(2)}</td><td>${r.E.toFixed(2)}</td></tr>`).join('')}
+$('record').onclick=()=>{let q=v(),m=metrics();rows.push({...q,...m});render()};$('clear').onclick=()=>{rows=[];render()};$('lang').onclick=()=>{lang=lang==='id'?'en':'id';labels();render()};
+$('export').onclick=()=>{if(!rows.length)$('record').click();let s='No,Length_m,Angle_deg,Gravity_mps2,Period_s,Frequency_Hz,InitialEnergy_J\n'+rows.map((r,i)=>[i+1,r.L,r.A,r.G,r.T,r.f,r.E].join(',')).join('\n');let b=new Blob([s],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='pendulum_experiment.csv';a.click();URL.revokeObjectURL(a.href)};
+new ResizeObserver(resize).observe(document.body);reset();labels();render();resize();
+</script>
+</body></html>

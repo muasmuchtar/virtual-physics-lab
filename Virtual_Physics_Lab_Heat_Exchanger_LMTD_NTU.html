@@ -1,0 +1,62 @@
+<!doctype html><html lang=id><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>102 — Heat Exchanger, LMTD & NTU–Effectiveness</title><style>*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:#071525;color:#eef7ff}.app{max-width:1450px;margin:auto;padding:18px}.sub{color:#9db5cb}.grid{display:grid;grid-template-columns:300px 1fr 355px;gap:14px}.card{background:#0d2237;border:1px solid #29465f;border-radius:17px;overflow:hidden}.hd{padding:13px 15px;font-weight:800;border-bottom:1px solid #29465f}.p{padding:14px}.ctrl{margin-bottom:13px}.ctrl label{display:flex;justify-content:space-between;font-size:13px}.v{color:#31d6c5;font-weight:700}input,select{width:100%;accent-color:#31d6c5}select,button{background:#102b45;color:#fff;border:1px solid #315572;border-radius:9px;padding:9px}.sim{height:500px;background:#081725;position:relative}.sim canvas,.chart canvas{width:100%;height:100%;display:block}.bar{padding:11px;display:flex;gap:7px;flex-wrap:wrap}.badgebox{position:absolute;top:10px;left:10px;display:flex;gap:6px}.badge{background:#06131ddd;border:1px solid #315572;padding:7px;border-radius:8px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat{background:#081a2a;border:1px solid #24445f;border-radius:9px;padding:9px}.stat small{display:block;color:#9db5cb}.formula{margin-top:10px;padding:10px;background:#081927;border-left:3px solid #31d6c5;border-radius:8px;font:12px Consolas;line-height:1.6}.chart{height:220px;margin-top:10px}.tbl{max-height:145px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:11px}td,th{padding:6px;border-bottom:1px solid #24445f;text-align:right}@media(max-width:1050px){.grid{grid-template-columns:285px 1fr}.right{grid-column:1/-1}}@media(max-width:700px){.grid{grid-template-columns:1fr}.right{grid-column:auto}}</style></head><body><div class=app>
+<h1>102 — Heat Exchanger, LMTD & NTU–Effectiveness</h1><div class=sub>Parallel/counter flow • heat-capacity rates • UA • NTU • effectiveness • outlet temperatures • fouling disturbance</div>
+<div class=grid>
+<div class=card><div class=hd>Parameters</div><div class=p><div class=ctrl><label>Hot inlet temperature <span class=v id=thv></span></label><input id=Th type=range min=50 max=250 value=150 step=2></div>
+<div class=ctrl><label>Cold inlet temperature <span class=v id=tcv></span></label><input id=Tc type=range min=5 max=100 value=25 step=1></div>
+<div class=ctrl><label>Hot heat-capacity rate <span class=v id=chv></span></label><input id=Ch type=range min=1 max=30 value=10 step=.5></div>
+<div class=ctrl><label>Cold heat-capacity rate <span class=v id=ccv></span></label><input id=Cc type=range min=1 max=30 value=8 step=.5></div>
+<div class=ctrl><label>UA <span class=v id=uav></span></label><input id=UA type=range min=.5 max=30 value=8 step=.5></div>
+<div class=ctrl><label>Flow arrangement <span class=v id=modev></span></label><select id=mode><option value=counter>Counter-flow</option><option value=parallel>Parallel-flow</option></select></div></div></div>
+<div class=card><div class=hd>Interactive Visualization</div>
+<div class=sim><canvas id=c></canvas><div class=badgebox><span class=badge id=b1></span> <span class=badge id=b2></span></div></div>
+<div class=bar><button id=run>▶ Run</button><button id=pause>⏸ Pause</button><button id=special>↺ Reset</button><button id=dist>⚡ Disturbance</button><button id=record>＋ Record</button><button id=csv>CSV</button></div></div>
+<div class="card right"><div class=hd>Analysis</div><div class=p><div class=stats><div class=stat><small>Effectiveness ε</small><b id=EPS></b></div><div class=stat><small>Heat transfer Q</small><b id=Q></b></div><div class=stat><small>Hot outlet</small><b id=THO></b></div><div class=stat><small>Cold outlet</small><b id=TCO></b></div></div>
+<div class=formula>NTU=UA/Cmin<br>Q=ε·Cmin(Th,in−Tc,in)<br>Th,out=Th,in−Q/Ch<br>Tc,out=Tc,in+Q/Cc</div><div class=chart><canvas id=g></canvas></div>
+<div class=tbl><table><thead><tr><th>#</th><th>Input</th><th>State</th><th>Output</th></tr></thead><tbody id=tb></tbody></table></div>
+</div></div></div></div><script>const $=i=>document.getElementById(i),c=$('c'),x=c.getContext('2d'),g=$('g'),gx=g.getContext('2d');
+let active=true,t=0,last=performance.now(),rows=[],foul=0;
+function q(uax=null){
+ let Th=+$('Th').value,Tc=+$('Tc').value,Ch=+$('Ch').value,Cc=+$('Cc').value,UA=(uax===null?Math.max(.05,+$('UA').value*(1-foul)):uax),mode=$('mode').value;
+ let Cmin=Math.min(Ch,Cc),Cmax=Math.max(Ch,Cc),Cr=Cmin/Cmax,NTU=UA/Cmin,eps;
+ if(mode==='counter'){
+   eps=Math.abs(1-Cr)<1e-6?NTU/(1+NTU):(1-Math.exp(-NTU*(1-Cr)))/(1-Cr*Math.exp(-NTU*(1-Cr)))
+ } else {
+   eps=(1-Math.exp(-NTU*(1+Cr)))/(1+Cr)
+ }
+ let Qmax=Cmin*Math.max(0,Th-Tc),Q=eps*Qmax,Tho=Th-Q/Ch,Tco=Tc+Q/Cc;
+ let dT1=mode==='counter'?Th-Tco:Th-Tc,dT2=mode==='counter'?Tho-Tc:Tho-Tco;
+ let LMTD=Math.abs(dT1-dT2)<1e-6?dT1:(dT1-dT2)/Math.log(Math.max(.001,dT1/dT2));
+ return{Th,Tc,Ch,Cc,UA,mode,Cmin,Cmax,Cr,NTU,eps,Q,Qmax,Tho,Tco,LMTD}
+}
+function u(){
+ let z=q();$('thv').textContent=z.Th+' °C';$('tcv').textContent=z.Tc+' °C';$('chv').textContent=z.Ch.toFixed(1)+' kW/K';$('ccv').textContent=z.Cc.toFixed(1)+' kW/K';$('uav').textContent=(+$('UA').value).toFixed(1)+' kW/K';$('modev').textContent=$('mode').selectedOptions[0].textContent;
+ $('EPS').textContent=(z.eps*100).toFixed(1)+'%';$('Q').textContent=z.Q.toFixed(1)+' kW';$('THO').textContent=z.Tho.toFixed(1)+' °C';$('TCO').textContent=z.Tco.toFixed(1)+' °C';draw();chart()
+}
+function size(){let d=Math.min(devicePixelRatio||1,2),r=c.getBoundingClientRect();c.width=r.width*d;c.height=r.height*d;x.setTransform(d,0,0,d,0,0);r=g.getBoundingClientRect();g.width=r.width*d;g.height=r.height*d;gx.setTransform(d,0,0,d,0,0);u()}
+function draw(){
+ let Wd=c.clientWidth,Hd=c.clientHeight,z=q(),x1=70,x2=Wd-70,y1=Hd*.38,y2=Hd*.62;
+ x.clearRect(0,0,Wd,Hd);
+ x.lineWidth=14;x.strokeStyle='#ff9f68';x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y1);x.stroke();
+ x.strokeStyle='#58a8ff';x.beginPath();
+ if(z.mode==='counter'){x.moveTo(x2,y2);x.lineTo(x1,y2)}else{x.moveTo(x1,y2);x.lineTo(x2,y2)}
+ x.stroke();
+ for(let i=0;i<10;i++){let xx=x1+((t*80+i*90)%(Math.max(1,x2-x1)));x.fillStyle='#ffd166';x.beginPath();x.arc(xx,y1,5,0,7);x.fill()}
+ for(let i=0;i<10;i++){let xx=z.mode==='counter'?x2-((t*65+i*90)%(Math.max(1,x2-x1))):x1+((t*65+i*90)%(Math.max(1,x2-x1)));x.fillStyle='#31d6c5';x.beginPath();x.arc(xx,y2,5,0,7);x.fill()}
+ x.fillStyle='#eef7ff';x.fillText('HOT: '+z.Th.toFixed(0)+' → '+z.Tho.toFixed(1)+' °C',x1,y1-25);x.fillText('COLD: '+z.Tc.toFixed(0)+' → '+z.Tco.toFixed(1)+' °C',x1,y2+35);
+ $('b1').textContent='ε '+(z.eps*100).toFixed(1)+'%';$('b2').textContent='NTU '+z.NTU.toFixed(2);foul*=.985
+}
+function chart(){
+ let Wd=g.clientWidth,Hd=g.clientHeight,p=28;gx.clearRect(0,0,Wd,Hd);gx.strokeStyle='#29465f';gx.beginPath();gx.moveTo(p,Hd-25);gx.lineTo(Wd-8,Hd-25);gx.stroke();
+ let vals=[];for(let i=0;i<=100;i++){let ua=.5+i*.295;vals.push(q(ua).eps)}
+ gx.strokeStyle='#31d6c5';gx.beginPath();vals.forEach((v,i)=>{let X=p+i/100*(Wd-p-10),Y=Hd-25-v*(Hd-45);i?gx.lineTo(X,Y):gx.moveTo(X,Y)});gx.stroke();gx.fillStyle='#eef7ff';gx.fillText('Heat-exchanger effectiveness vs UA',p,13)
+}
+function loop(n){let dt=Math.min((n-last)/1000,.03);last=n;if(active){t+=dt;draw()}requestAnimationFrame(loop)}
+$('run').onclick=()=>active=true;$('pause').onclick=()=>active=!active;
+$('special').onclick=()=>{$('Th').value=150;$('Tc').value=25;$('Ch').value=10;$('Cc').value=8;$('UA').value=8;$('mode').value='counter';foul=0;u()};
+$('dist').onclick=()=>{foul=.45;u()};
+['Th','Tc','Ch','Cc','UA','mode'].forEach(i=>$(i).oninput=u);
+$('record').onclick=()=>{let z=q();rows.push(z);$('tb').innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.mode}</td><td>ε ${(r.eps*100).toFixed(1)}%</td><td>${r.Q.toFixed(1)} kW</td></tr>`).join('')};
+$('csv').onclick=()=>{if(!rows.length)$('record').click();let s='Th_in_C,Tc_in_C,Ch_kW_K,Cc_kW_K,UA_kW_K,mode,Cmin,Cmax,Cr,NTU,effectiveness,Q_kW,Th_out_C,Tc_out_C,LMTD_C\n'+rows.map(r=>[r.Th,r.Tc,r.Ch,r.Cc,r.UA,r.mode,r.Cmin,r.Cmax,r.Cr,r.NTU,r.eps,r.Q,r.Tho,r.Tco,r.LMTD].join(',')).join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'text/csv'}));a.download='heat_exchanger_lmtd_ntu.csv';a.click()};
+new ResizeObserver(size).observe(document.body);u();requestAnimationFrame(loop)</script></body></html>

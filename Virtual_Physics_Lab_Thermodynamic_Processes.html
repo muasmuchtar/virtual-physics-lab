@@ -1,0 +1,42 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thermodynamic Processes</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:linear-gradient(135deg,#06101d,#091827);color:#eef7ff}
+.app{max-width:1500px;margin:auto;padding:18px}.head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}
+.card{background:#0d2237;border:1px solid #24445f;border-radius:18px;overflow:hidden}.grid{display:grid;grid-template-columns:310px 1fr 350px;gap:14px}
+.ch{padding:14px 16px;border-bottom:1px solid #24445f;font-weight:800}.cb{padding:15px}.ctrl{margin-bottom:14px}.ctrl label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.val{color:#31d6c5;font-weight:800}input[type=range]{width:100%;accent-color:#31d6c5}select,button{background:#102b45;border:1px solid #315572;color:white;padding:9px 12px;border-radius:10px}
+select{width:100%}.sim{height:540px;position:relative;background:#081725}.sim canvas,.chart canvas{width:100%;height:100%;display:block}.bar{padding:12px;display:flex;gap:8px;flex-wrap:wrap}
+.badges{position:absolute;top:12px;left:12px;display:flex;gap:7px;flex-wrap:wrap}.badge{background:#06131ddd;border:1px solid #315572;padding:7px 9px;border-radius:9px;font-size:12px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{background:#081a2a;border:1px solid #24445f;border-radius:11px;padding:10px}.stat small{display:block;color:#9db5cb}.stat strong{font-size:18px}
+.formula{margin-top:12px;border-left:3px solid #31d6c5;background:#081927;padding:11px;border-radius:9px;font-family:Consolas,monospace;line-height:1.6;font-size:12px}.chart{height:235px;margin-top:12px}
+.table{max-height:220px;overflow:auto;margin-top:12px;border:1px solid #24445f;border-radius:10px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:7px;border-bottom:1px solid #1a354d;text-align:right}th:first-child,td:first-child{text-align:left}
+@media(max-width:1100px){.grid{grid-template-columns:290px 1fr}.right{grid-column:1/-1}}@media(max-width:720px){.grid{grid-template-columns:1fr}.right{grid-column:auto}.head{flex-direction:column;align-items:flex-start}}
+</style>
+</head><body><div class="app">
+<div class="head"><div><h1>16 — Thermodynamic Processes (P–V Diagram)</h1><div>Isobaric • Isochoric • Isothermal • Adiabatic</div></div><button id="csv">Export CSV</button></div>
+<div class="grid">
+<section class="card"><div class="ch">Parameter Eksperimen</div><div class="cb">
+<div class="ctrl"><label>Proses</label><select id="proc"><option value="isothermal">Isothermal</option><option value="isobaric">Isobaric</option><option value="isochoric">Isochoric</option><option value="adiabatic">Adiabatic</option></select></div>
+<div class="ctrl"><label>P₁ <span class="val" id="p1v"></span></label><input id="P1" type="range" min="50" max="500" value="200" step="5"></div>
+<div class="ctrl"><label>V₁ <span class="val" id="v1v"></span></label><input id="V1" type="range" min=".005" max=".08" value=".02" step=".001"></div>
+<div class="ctrl"><label>V₂ <span class="val" id="v2v"></span></label><input id="V2" type="range" min=".005" max=".1" value=".05" step=".001"></div>
+<div class="ctrl"><label>γ <span class="val" id="gv"></span></label><input id="gam" type="range" min="1.1" max="1.67" value="1.4" step=".01"></div></div></section>
+<section class="card"><div class="ch">Piston Simulation</div><div class="sim"><canvas id="c"></canvas><div class="badges"><div class="badge">P=<span id="pn"></span> kPa</div><div class="badge">V=<span id="vn"></span>L</div><div class="badge">W=<span id="wn"></span>kJ</div></div></div>
+<div class="bar"><button id="play">▶ Run</button><button id="pause">⏸ Pause</button><button id="step">⏭ Step</button><button id="reset">↺ Reset</button><button id="record">＋ Record</button></div></section>
+<section class="card right"><div class="ch">Hasil & Analisis</div><div class="cb"><div class="stats"><div class="stat"><small>P₂</small><strong id="P2"></strong></div><div class="stat"><small>Work</small><strong id="W"></strong></div><div class="stat"><small>P₁V₁</small><strong id="PV1"></strong></div><div class="stat"><small>P₂V₂</small><strong id="PV2"></strong></div></div>
+<div class="formula">Isothermal: PV = const<br>Isobaric: W=P(V₂−V₁)<br>Isochoric: W=0<br>Adiabatic: PV^γ=const</div><div class="chart"><canvas id="g"></canvas></div>
+<div class="table"><table><thead><tr><th>#</th><th>Process</th><th>P1</th><th>V1</th><th>P2</th><th>V2</th><th>W</th></tr></thead><tbody id="tb"></tbody></table></div></div></section></div></div>
+<script>
+const $=i=>document.getElementById(i),c=$('c'),ctx=c.getContext('2d'),g=$('g'),gx=g.getContext('2d');let u=0,run=false,last=performance.now(),rows=[];
+function q(){let proc=$('proc').value,P1=+$('P1').value*1000,V1=+$('V1').value,V2=+$('V2').value,gam=+$('gam').value,P2,W;if(proc==='isothermal'){P2=P1*V1/V2;W=P1*V1*Math.log(V2/V1)}else if(proc==='isobaric'){P2=P1;W=P1*(V2-V1)}else if(proc==='isochoric'){V2=V1;P2=P1;W=0}else{P2=P1*Math.pow(V1/V2,gam);W=(P2*V2-P1*V1)/(1-gam)}return {proc,P1,V1,V2,gam,P2,W}}
+function state(){let z=q(),V=z.V1+(z.V2-z.V1)*u,P;if(z.proc==='isothermal')P=z.P1*z.V1/V;else if(z.proc==='isobaric')P=z.P1;else if(z.proc==='isochoric'){V=z.V1;P=z.P1}else P=z.P1*Math.pow(z.V1/V,z.gam);return {V,P,z}}
+function resize(){let D=Math.min(devicePixelRatio||1,2),r=c.getBoundingClientRect();c.width=r.width*D;c.height=r.height*D;ctx.setTransform(D,0,0,D,0,0);r=g.getBoundingClientRect();g.width=r.width*D;g.height=r.height*D;gx.setTransform(D,0,0,D,0,0);draw();chart()}
+function draw(){let Wc=c.clientWidth,H=c.clientHeight,s=state(),bw=250,base=H*.82,mh=H*.58,h=Math.max(70,Math.min(mh,80+s.V/.1*mh)),x0=Wc/2-bw/2;ctx.clearRect(0,0,Wc,H);ctx.strokeStyle='#8ec9e8';ctx.strokeRect(x0,base-mh,bw,mh);ctx.fillStyle='#0d5176';ctx.fillRect(x0,base-h,bw,h);ctx.fillStyle='#cdd8e4';ctx.fillRect(x0-10,base-h-16,bw+20,16);$('pn').textContent=(s.P/1000).toFixed(1);$('vn').textContent=(s.V*1000).toFixed(1);$('wn').textContent=(s.z.W*u/1000).toFixed(2)}
+function update(){let z=q();$('p1v').textContent=(z.P1/1000).toFixed(0)+' kPa';$('v1v').textContent=(z.V1*1000).toFixed(1)+' L';$('v2v').textContent=(z.V2*1000).toFixed(1)+' L';$('gv').textContent=z.gam.toFixed(2);$('P2').textContent=(z.P2/1000).toFixed(1)+' kPa';$('W').textContent=(z.W/1000).toFixed(2)+' kJ';$('PV1').textContent=(z.P1*z.V1/1000).toFixed(2)+' kJ';$('PV2').textContent=(z.P2*z.V2/1000).toFixed(2)+' kJ';draw();chart()}
+function chart(){let Wc=g.clientWidth,H=g.clientHeight,p=35,z=q(),minV=Math.min(z.V1,z.V2)*.8,maxV=Math.max(z.V1,z.V2)*1.2,maxP=Math.max(z.P1,z.P2)*1.25;gx.clearRect(0,0,Wc,H);gx.strokeStyle='#29465f';gx.beginPath();gx.moveTo(p,10);gx.lineTo(p,H-p);gx.lineTo(Wc-10,H-p);gx.stroke();gx.strokeStyle='#31d6c5';gx.beginPath();for(let i=0;i<=100;i++){let V=z.V1+(z.V2-z.V1)*i/100,P;if(z.proc==='isothermal')P=z.P1*z.V1/V;else if(z.proc==='isobaric')P=z.P1;else if(z.proc==='isochoric'){V=z.V1;P=z.P1}else P=z.P1*Math.pow(z.V1/V,z.gam);let X=p+(V-minV)/(maxV-minV)*(Wc-p-12),Y=H-p-P/maxP*(H-p-18);if(i)gx.lineTo(X,Y);else gx.moveTo(X,Y)}gx.stroke()}
+function loop(n){let dt=Math.min((n-last)/1000,.05);last=n;if(run){u=Math.min(1,u+dt*.3);if(u>=1)run=false;draw()}requestAnimationFrame(loop)}
+$('play').onclick=()=>{if(u>=1)u=0;run=true;last=performance.now()};$('pause').onclick=()=>run=!run;$('step').onclick=()=>{run=false;u=Math.min(1,u+.05);draw()};$('reset').onclick=()=>{u=0;run=false;draw()};['proc','P1','V1','V2','gam'].forEach(i=>$(i).oninput=()=>{u=0;update()});
+$('record').onclick=()=>{let z=q();rows.push(z);$('tb').innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.proc}</td><td>${(r.P1/1000).toFixed(0)}</td><td>${(r.V1*1000).toFixed(1)}</td><td>${(r.P2/1000).toFixed(1)}</td><td>${(r.V2*1000).toFixed(1)}</td><td>${(r.W/1000).toFixed(2)}</td></tr>`).join('')};
+$('csv').onclick=()=>{if(!rows.length)$('record').click();let s='No,process,P1_kPa,V1_L,P2_kPa,V2_L,W_kJ\n'+rows.map((r,i)=>[i+1,r.proc,r.P1/1000,r.V1*1000,r.P2/1000,r.V2*1000,r.W/1000].join(',')).join('\n'),b=new Blob([s],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='thermodynamic_processes.csv';a.click()};
+new ResizeObserver(resize).observe(document.body);update();requestAnimationFrame(loop);
+</script></body></html>

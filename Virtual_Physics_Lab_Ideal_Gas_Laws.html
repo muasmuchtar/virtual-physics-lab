@@ -1,0 +1,43 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ideal Gas</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:linear-gradient(135deg,#06101d,#091827);color:#eef7ff}
+.app{max-width:1500px;margin:auto;padding:18px}.head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}
+.card{background:#0d2237;border:1px solid #24445f;border-radius:18px;overflow:hidden}.grid{display:grid;grid-template-columns:310px 1fr 350px;gap:14px}
+.ch{padding:14px 16px;border-bottom:1px solid #24445f;font-weight:800}.cb{padding:15px}.ctrl{margin-bottom:14px}.ctrl label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.val{color:#31d6c5;font-weight:800}input[type=range]{width:100%;accent-color:#31d6c5}select,button{background:#102b45;border:1px solid #315572;color:white;padding:9px 12px;border-radius:10px}
+select{width:100%}.sim{height:540px;position:relative;background:#081725}.sim canvas,.chart canvas{width:100%;height:100%;display:block}.bar{padding:12px;display:flex;gap:8px;flex-wrap:wrap}
+.badges{position:absolute;top:12px;left:12px;display:flex;gap:7px;flex-wrap:wrap}.badge{background:#06131ddd;border:1px solid #315572;padding:7px 9px;border-radius:9px;font-size:12px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{background:#081a2a;border:1px solid #24445f;border-radius:11px;padding:10px}.stat small{display:block;color:#9db5cb}.stat strong{font-size:18px}
+.formula{margin-top:12px;border-left:3px solid #31d6c5;background:#081927;padding:11px;border-radius:9px;font-family:Consolas,monospace;line-height:1.6;font-size:12px}.chart{height:235px;margin-top:12px}
+.table{max-height:220px;overflow:auto;margin-top:12px;border:1px solid #24445f;border-radius:10px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:7px;border-bottom:1px solid #1a354d;text-align:right}th:first-child,td:first-child{text-align:left}
+@media(max-width:1100px){.grid{grid-template-columns:290px 1fr}.right{grid-column:1/-1}}@media(max-width:720px){.grid{grid-template-columns:1fr}.right{grid-column:auto}.head{flex-direction:column;align-items:flex-start}}
+</style>
+</head><body><div class="app">
+<div class="head"><div><h1>15 — Ideal Gas & Gas Laws</h1><div>Boyle • Charles • Gay-Lussac • Ideal Gas Equation</div></div><button id="csv">Export CSV</button></div>
+<div class="grid">
+<section class="card"><div class="ch">Parameter Eksperimen</div><div class="cb">
+<div class="ctrl"><label>Jumlah mol n <span class="val" id="nv"></span></label><input id="n" type="range" min=".2" max="5" value="1" step=".1"></div>
+<div class="ctrl"><label>Temperatur T <span class="val" id="Tv"></span></label><input id="T" type="range" min="100" max="1000" value="300" step="10"></div>
+<div class="ctrl"><label>Volume V <span class="val" id="Vv"></span></label><input id="V" type="range" min=".005" max=".1" value=".025" step=".001"></div>
+<div class="ctrl"><label>Mode</label><select id="mode"><option>Ideal Gas</option><option>Boyle</option><option>Charles</option><option>Gay-Lussac</option></select></div></div></section>
+<section class="card"><div class="ch">Molecular Simulation</div><div class="sim"><canvas id="c"></canvas><div class="badges"><div class="badge">P=<span id="pn"></span> kPa</div><div class="badge">T=<span id="tn"></span>K</div><div class="badge">V=<span id="vn"></span>L</div></div></div>
+<div class="bar"><button id="play">▶ Animate</button><button id="pause">⏸ Pause</button><button id="step">⏭ Step</button><button id="reset">↺ Reset</button><button id="record">＋ Record</button></div></section>
+<section class="card right"><div class="ch">Hasil & Analisis</div><div class="cb"><div class="stats"><div class="stat"><small>Pressure</small><strong id="P"></strong></div><div class="stat"><small>PV</small><strong id="PV"></strong></div><div class="stat"><small>nRT</small><strong id="NRT"></strong></div><div class="stat"><small>n/V</small><strong id="den"></strong></div></div>
+<div class="formula">PV = nRT<br>Boyle: P ∝ 1/V<br>Charles: V ∝ T<br>Gay-Lussac: P ∝ T</div><div class="chart"><canvas id="g"></canvas></div>
+<div class="table"><table><thead><tr><th>#</th><th>n</th><th>T</th><th>V(L)</th><th>P(kPa)</th></tr></thead><tbody id="tb"></tbody></table></div></div></section>
+</div></div><script>
+const $=i=>document.getElementById(i),R=8.314,c=$('c'),ctx=c.getContext('2d'),g=$('g'),gx=g.getContext('2d');
+let run=true,last=performance.now(),parts=[],rows=[];
+function q(){let n=+$('n').value,T=+$('T').value,V=+$('V').value,P=n*R*T/V;return {n,T,V,P}}
+function init(){parts=[];for(let i=0;i<42;i++)parts.push({x:Math.random(),y:Math.random(),vx:Math.random()-.5,vy:Math.random()-.5})}
+function resize(){let D=Math.min(devicePixelRatio||1,2),r=c.getBoundingClientRect();c.width=r.width*D;c.height=r.height*D;ctx.setTransform(D,0,0,D,0,0);r=g.getBoundingClientRect();g.width=r.width*D;g.height=r.height*D;gx.setTransform(D,0,0,D,0,0);draw();chart()}
+function draw(){let W=c.clientWidth,H=c.clientHeight,z=q(),bw=Math.max(180,Math.min(W*.78,180+z.V/.1*W*.55)),bh=H*.56,x0=(W-bw)/2,y0=(H-bh)/2;ctx.clearRect(0,0,W,H);ctx.fillStyle='#0c4060';ctx.fillRect(x0,y0,bw,bh);ctx.strokeStyle='#8ec9e8';ctx.lineWidth=3;ctx.strokeRect(x0,y0,bw,bh);for(let p of parts){ctx.fillStyle='#ffd166';ctx.beginPath();ctx.arc(x0+p.x*bw,y0+p.y*bh,4,0,7);ctx.fill()}$('pn').textContent=(z.P/1000).toFixed(1);$('tn').textContent=z.T;$('vn').textContent=(z.V*1000).toFixed(1)}
+function update(){let z=q();$('nv').textContent=z.n.toFixed(1)+' mol';$('Tv').textContent=z.T+' K';$('Vv').textContent=(z.V*1000).toFixed(1)+' L';$('P').textContent=(z.P/1000).toFixed(1)+' kPa';$('PV').textContent=(z.P*z.V).toFixed(1)+' J';$('NRT').textContent=(z.n*R*z.T).toFixed(1)+' J';$('den').textContent=(z.n/z.V).toFixed(1)+' mol/m³';draw();chart()}
+function chart(){let W=g.clientWidth,H=g.clientHeight,p=30,z=q();gx.clearRect(0,0,W,H);gx.strokeStyle='#29465f';gx.beginPath();gx.moveTo(p,10);gx.lineTo(p,H-p);gx.lineTo(W-10,H-p);gx.stroke();gx.strokeStyle='#31d6c5';gx.beginPath();for(let i=0;i<=100;i++){let V=.005+i*.00095,P=z.n*R*z.T/V/1000,X=p+i/100*(W-p-12),Y=H-p-Math.min(1,P/500)*(H-p-18);if(i)gx.lineTo(X,Y);else gx.moveTo(X,Y)}gx.stroke()}
+function loop(n){let dt=Math.min((n-last)/1000,.04);last=n;if(run){let z=q(),spd=Math.sqrt(z.T/300)*.25;for(let p of parts){p.x+=p.vx*spd*dt;p.y+=p.vy*spd*dt;if(p.x<0||p.x>1){p.vx*=-1;p.x=Math.max(0,Math.min(1,p.x))}if(p.y<0||p.y>1){p.vy*=-1;p.y=Math.max(0,Math.min(1,p.y))}}draw()}requestAnimationFrame(loop)}
+$('play').onclick=()=>run=true;$('pause').onclick=()=>run=!run;$('step').onclick=()=>{run=false;for(let p of parts){p.x=Math.max(0,Math.min(1,p.x+p.vx*.02));p.y=Math.max(0,Math.min(1,p.y+p.vy*.02))}draw()};$('reset').onclick=()=>{init();run=true;update()};
+['n','T','V','mode'].forEach(i=>$(i).oninput=update);
+$('record').onclick=()=>{let z=q();rows.push(z);$('tb').innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.n}</td><td>${r.T}</td><td>${(r.V*1000).toFixed(1)}</td><td>${(r.P/1000).toFixed(1)}</td></tr>`).join('')};
+$('csv').onclick=()=>{if(!rows.length)$('record').click();let s='No,n,T,V_L,P_kPa\n'+rows.map((r,i)=>[i+1,r.n,r.T,r.V*1000,r.P/1000].join(',')).join('\n'),b=new Blob([s],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ideal_gas.csv';a.click()};
+init();new ResizeObserver(resize).observe(document.body);update();requestAnimationFrame(loop);
+</script></body></html>

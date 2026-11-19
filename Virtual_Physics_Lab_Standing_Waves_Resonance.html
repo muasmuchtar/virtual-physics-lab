@@ -1,0 +1,44 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Standing Waves & Resonance</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial;background:radial-gradient(circle at 10% 0,#174166 0,transparent 28%),linear-gradient(135deg,#06101d,#091827);color:#eef7ff}
+.app{max-width:1500px;margin:auto;padding:18px}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.head h1{margin:0;font-size:27px}.sub{color:#9db5cb;font-size:13px}
+.grid{display:grid;grid-template-columns:310px 1fr 350px;gap:14px}.card{background:#0d2237;border:1px solid #24445f;border-radius:18px;overflow:hidden}.ch{padding:14px 16px;border-bottom:1px solid #24445f;font-weight:800}.cb{padding:15px}
+.ctrl{margin-bottom:14px}.ctrl label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}.val{color:#31d6c5;font-weight:800}input[type=range]{width:100%;accent-color:#31d6c5}select,button{background:#102b45;border:1px solid #315572;color:white;padding:9px 12px;border-radius:10px;cursor:pointer}select{width:100%}.primary{background:linear-gradient(135deg,#1faaa1,#278be8);border:0}
+.sim{height:540px;position:relative;background:linear-gradient(#16324a 1px,transparent 1px),linear-gradient(90deg,#16324a 1px,transparent 1px),#081725;background-size:40px 40px}.sim canvas,.chart canvas{width:100%;height:100%;display:block}
+.bar{padding:12px;display:flex;gap:8px;flex-wrap:wrap}.badges{position:absolute;top:12px;left:12px;display:flex;gap:7px;flex-wrap:wrap}.badge{background:#06131ddd;border:1px solid #315572;padding:7px 9px;border-radius:9px;font-size:12px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{background:#081a2a;border:1px solid #24445f;border-radius:11px;padding:10px}.stat small{display:block;color:#9db5cb}.stat strong{font-size:18px}
+.formula{margin-top:12px;border-left:3px solid #31d6c5;background:#081927;padding:11px;border-radius:9px;font-family:Consolas,monospace;line-height:1.6;font-size:12px}.chart{height:235px;margin-top:12px}
+.table{max-height:220px;overflow:auto;margin-top:12px;border:1px solid #24445f;border-radius:10px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:7px;border-bottom:1px solid #1a354d;text-align:right}th:first-child,td:first-child{text-align:left}
+footer{text-align:center;color:#7893aa;padding:16px;font-size:12px}
+@media(max-width:1100px){.grid{grid-template-columns:290px 1fr}.right{grid-column:1/-1}}@media(max-width:720px){.grid{grid-template-columns:1fr}.right{grid-column:auto}.head{flex-direction:column;align-items:flex-start}.sim{height:450px}}
+</style>
+</head><body>
+<div class="app"><div class="head"><div><h1>18 — Standing Waves & Resonance</h1><div class="sub">String Modes • Nodes & Antinodes • Harmonics • Resonance</div></div><button id="csv">Export CSV</button></div>
+<div class="grid">
+<section class="card"><div class="ch">Parameter Eksperimen</div><div class="cb">
+<div class="ctrl"><label>Panjang tali L <span class="val" id="Lv"></span></label><input id="L" type="range" min=".5" max="5" value="2" step=".1"></div>
+<div class="ctrl"><label>Tegangan F <span class="val" id="Fv"></span></label><input id="F" type="range" min="5" max="200" value="80" step="5"></div>
+<div class="ctrl"><label>Massa jenis linear μ <span class="val" id="muv"></span></label><input id="mu" type="range" min=".005" max=".1" value=".02" step=".005"></div>
+<div class="ctrl"><label>Harmonik n <span class="val" id="nv"></span></label><input id="n" type="range" min="1" max="8" value="2" step="1"></div>
+<div class="ctrl"><label>Amplitudo visual <span class="val" id="Av"></span></label><input id="A" type="range" min=".2" max="1.5" value="1" step=".1"></div>
+</div></section>
+<section class="card"><div class="ch">Standing Wave Simulation</div><div class="sim"><canvas id="c"></canvas><div class="badges"><div class="badge">fₙ=<span id="fn"></span> Hz</div><div class="badge">λ=<span id="ln"></span> m</div><div class="badge">v=<span id="vn"></span> m/s</div></div></div>
+<div class="bar"><button class="primary" id="play">▶ Play</button><button id="pause">⏸ Pause</button><button id="step">⏭ Step</button><button id="reset">↺ Reset</button><button id="record">＋ Record</button></div></section>
+<section class="card right"><div class="ch">Hasil & Analisis</div><div class="cb">
+<div class="stats"><div class="stat"><small>Wave speed</small><strong id="speed"></strong></div><div class="stat"><small>Fundamental f₁</small><strong id="f1"></strong></div><div class="stat"><small>Selected fₙ</small><strong id="fsel"></strong></div><div class="stat"><small>Wavelength λₙ</small><strong id="lam"></strong></div><div class="stat"><small>Nodes</small><strong id="nodes"></strong></div><div class="stat"><small>Antinodes</small><strong id="anti"></strong></div></div>
+<div class="formula">v = √(F/μ)<br>fₙ = n·v/(2L)<br>λₙ = 2L/n<br>Nodes = n + 1<br>Antinodes = n</div>
+<div class="chart"><canvas id="g"></canvas></div><div class="table"><table><thead><tr><th>#</th><th>L</th><th>F</th><th>μ</th><th>n</th><th>fₙ</th></tr></thead><tbody id="tb"></tbody></table></div>
+</div></section></div><footer>Virtual Physics Lab • Standing Waves & Resonance • Offline</footer></div>
+<script>
+const $=i=>document.getElementById(i),c=$('c'),ctx=c.getContext('2d'),g=$('g'),gx=g.getContext('2d');let t=0,last=performance.now(),run=true,rows=[];
+function q(){let L=+$('L').value,F=+$('F').value,mu=+$('mu').value,n=+$('n').value,A=+$('A').value,v=Math.sqrt(F/mu),f1=v/(2*L),fn=n*f1,lam=2*L/n,w=2*Math.PI*fn;return{L,F,mu,n,A,v,f1,fn,lam,w}}
+function resize(){let D=Math.min(devicePixelRatio||1,2),r=c.getBoundingClientRect();c.width=r.width*D;c.height=r.height*D;ctx.setTransform(D,0,0,D,0,0);r=g.getBoundingClientRect();g.width=r.width*D;g.height=r.height*D;gx.setTransform(D,0,0,D,0,0);draw();chart()}
+function draw(){let W=c.clientWidth,H=c.clientHeight,z=q(),x0=60,x1=W-60,cy=H/2,amp=80*z.A*Math.cos(z.w*t);ctx.clearRect(0,0,W,H);ctx.strokeStyle='#8aa4ba';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x0,cy-110);ctx.lineTo(x0,cy+110);ctx.moveTo(x1,cy-110);ctx.lineTo(x1,cy+110);ctx.stroke();ctx.strokeStyle='#31d6c5';ctx.lineWidth=3;ctx.beginPath();for(let i=0;i<=300;i++){let s=i/300,y=cy-amp*Math.sin(z.n*Math.PI*s),x=x0+s*(x1-x0);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y)}ctx.stroke();for(let j=0;j<=z.n;j++){let x=x0+j/z.n*(x1-x0);ctx.fillStyle='#ff758f';ctx.beginPath();ctx.arc(x,cy,5,0,7);ctx.fill()}$('fn').textContent=z.fn.toFixed(2);$('ln').textContent=z.lam.toFixed(2);$('vn').textContent=z.v.toFixed(1)}
+function update(){let z=q();$('Lv').textContent=z.L.toFixed(1)+' m';$('Fv').textContent=z.F+' N';$('muv').textContent=z.mu.toFixed(3)+' kg/m';$('nv').textContent=z.n;$('Av').textContent=z.A.toFixed(1)+'×';$('speed').textContent=z.v.toFixed(1)+' m/s';$('f1').textContent=z.f1.toFixed(2)+' Hz';$('fsel').textContent=z.fn.toFixed(2)+' Hz';$('lam').textContent=z.lam.toFixed(2)+' m';$('nodes').textContent=z.n+1;$('anti').textContent=z.n;draw();chart()}
+function chart(){let W=g.clientWidth,H=g.clientHeight,p=30,z=q();gx.clearRect(0,0,W,H);gx.strokeStyle='#29465f';gx.beginPath();gx.moveTo(p,10);gx.lineTo(p,H-p);gx.lineTo(W-10,H-p);gx.stroke();gx.strokeStyle='#ffd166';gx.lineWidth=2;gx.beginPath();for(let n=1;n<=8;n++){let f=n*z.f1,X=p+(n-1)/7*(W-p-12),Y=H-p-f/(8*z.f1)*(H-p-18);if(n>1)gx.lineTo(X,Y);else gx.moveTo(X,Y)}gx.stroke();for(let n=1;n<=8;n++){let f=n*z.f1,X=p+(n-1)/7*(W-p-12),Y=H-p-f/(8*z.f1)*(H-p-18);gx.fillStyle=n===z.n?'#31d6c5':'#ffd166';gx.beginPath();gx.arc(X,Y,n===z.n?5:3,0,7);gx.fill()}}
+function loop(now){let dt=Math.min((now-last)/1000,.04);last=now;if(run){t+=dt;draw()}requestAnimationFrame(loop)}
+$('play').onclick=()=>{run=true;last=performance.now()};$('pause').onclick=()=>run=!run;$('step').onclick=()=>{run=false;t+=.01;draw()};$('reset').onclick=()=>{t=0;run=true;draw()};['L','F','mu','n','A'].forEach(i=>$(i).oninput=update);
+$('record').onclick=()=>{let z=q();rows.push(z);$('tb').innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.L}</td><td>${r.F}</td><td>${r.mu}</td><td>${r.n}</td><td>${r.fn.toFixed(2)}</td></tr>`).join('')};
+$('csv').onclick=()=>{if(!rows.length)$('record').click();let s='No,L_m,Tension_N,mu_kgpm,harmonic,frequency_Hz\n'+rows.map((r,i)=>[i+1,r.L,r.F,r.mu,r.n,r.fn].join(',')).join('\n'),b=new Blob([s],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='standing_waves_resonance.csv';a.click()};
+new ResizeObserver(resize).observe(document.body);update();requestAnimationFrame(loop);
+</script></body></html>

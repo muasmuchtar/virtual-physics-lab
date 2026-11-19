@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Physics Lab — Projectile Motion</title>
+<style>
+:root{
+  --bg:#07111f;--panel:#0e1c2f;--panel2:#12253d;--line:#24415f;--text:#eaf4ff;
+  --muted:#9bb4cf;--accent:#31d6c5;--accent2:#57a6ff;--warn:#ffcc66;--danger:#ff6b7a;
+  --ok:#62e39b;--shadow:0 18px 45px rgba(0,0,0,.28)
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:
+radial-gradient(circle at 15% 0%,#12365b 0,transparent 32%),
+linear-gradient(135deg,#06101d,#091827 55%,#071321);color:var(--text);min-height:100vh}
+button,input,select{font:inherit}
+.app{max-width:1600px;margin:auto;padding:18px}
+header{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:15px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:
+linear-gradient(135deg,var(--accent2),var(--accent));font-weight:900;color:#03101b;box-shadow:var(--shadow)}
+h1{font-size:clamp(20px,2vw,30px);margin:0}.sub{color:var(--muted);font-size:13px;margin-top:4px}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap}
+button,.chip{border:1px solid var(--line);background:#112238;color:var(--text);border-radius:12px;padding:10px 13px;cursor:pointer;transition:.18s}
+button:hover{transform:translateY(-1px);border-color:#3e678f}
+button.primary{background:linear-gradient(135deg,#1faea6,#278af0);border:none;font-weight:800}
+button.danger{border-color:#6b3541}
+.grid{display:grid;grid-template-columns:320px minmax(0,1fr) 330px;gap:14px}
+.card{background:linear-gradient(180deg,rgba(18,37,61,.95),rgba(11,27,45,.96));border:1px solid #203c5a;border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.card-h{padding:14px 16px;border-bottom:1px solid var(--line);font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.card-b{padding:15px}
+.control{margin-bottom:16px}
+.control label{display:flex;justify-content:space-between;color:#cfe0f2;margin-bottom:7px;font-size:13px}
+.val{font-weight:800;color:var(--accent)}
+input[type=range]{width:100%;accent-color:#33d3c5}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+select{width:100%;background:#0c1c2e;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px}
+.toggle{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.toggle input{accent-color:var(--accent)}
+.canvas-wrap{position:relative;background:
+linear-gradient(#10243a88 1px,transparent 1px),
+linear-gradient(90deg,#10243a88 1px,transparent 1px),
+radial-gradient(circle at 50% 15%,#153555,#081420 65%);
+background-size:40px 40px,40px 40px,auto;min-height:560px}
+#sim{display:block;width:100%;height:560px}
+.overlay{position:absolute;top:12px;left:12px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
+.badge{background:#071523cc;border:1px solid #294a69;border-radius:10px;padding:7px 9px;font-size:12px}
+.controls-bar{padding:12px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);background:#0a192a}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{padding:12px;background:#0a1a2b;border:1px solid #203d5b;border-radius:13px}
+.stat small{display:block;color:var(--muted);margin-bottom:5px}
+.stat strong{font-size:20px}
+.formula{margin-top:12px;padding:12px;border-radius:13px;background:#091928;border-left:3px solid var(--accent);font-family:Consolas,monospace;font-size:13px;line-height:1.55}
+.tabs{display:flex;gap:6px;padding:10px;border-bottom:1px solid var(--line);overflow:auto}
+.tab{padding:8px 10px;white-space:nowrap;font-size:12px}
+.tab.active{background:#1b4161;border-color:#3e7faa}
+.chartbox{height:250px}.chartbox canvas{width:100%;height:100%}
+.tablewrap{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px;border-bottom:1px solid #19344e;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{position:sticky;top:0;background:#10253b;color:#bcd0e5}
+.help{font-size:12.5px;line-height:1.55;color:#b7cadf}
+.help b{color:#fff}
+footer{text-align:center;color:#6f8da9;font-size:12px;padding:18px}
+@media(max-width:1150px){.grid{grid-template-columns:300px 1fr}.right{grid-column:1/-1}.right .card-b{display:grid;grid-template-columns:1fr 1fr;gap:14px}}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.right{grid-column:auto}.right .card-b{display:block}.canvas-wrap,#sim{height:470px}header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand">
+    <div class="logo">Φ</div>
+    <div><h1 id="title">Virtual Physics Lab — Gerak Parabola</h1>
+    <div class="sub" id="subtitle">Projectile Motion • Kinematika 2D • Ideal tanpa hambatan udara</div></div>
+  </div>
+  <div class="top-actions">
+    <button id="langBtn">EN / ID</button>
+    <button id="exportBtn">Export CSV</button>
+    <button id="clearDataBtn">Clear Records</button>
+  </div>
+</header>
+
+<div class="grid">
+  <section class="card left">
+    <div class="card-h"><span id="paramTitle">Parameter Eksperimen</span><span>⚙</span></div>
+    <div class="card-b">
+      <div class="control">
+        <label><span id="angleLabel">Sudut peluncuran θ</span><span class="val" id="angleVal">45°</span></label>
+        <input id="angle" type="range" min="5" max="85" value="45" step="1">
+      </div>
+      <div class="control">
+        <label><span id="speedLabel">Kecepatan awal v₀</span><span class="val" id="speedVal">50 m/s</span></label>
+        <input id="speed" type="range" min="10" max="100" value="50" step="1">
+      </div>
+      <div class="control">
+        <label><span id="gravityLabel">Gravitasi g</span><span class="val" id="gravityVal">9.8 m/s²</span></label>
+        <input id="gravity" type="range" min="1" max="25" value="9.8" step="0.1">
+      </div>
+      <div class="control">
+        <label><span id="heightLabel">Ketinggian awal h₀</span><span class="val" id="heightVal">0 m</span></label>
+        <input id="height" type="range" min="0" max="50" value="0" step="1">
+      </div>
+      <div class="control">
+        <label><span id="timeScaleLabel">Kecepatan animasi</span><span class="val" id="timeScaleVal">1.0×</span></label>
+        <input id="timeScale" type="range" min="0.2" max="3" value="1" step="0.1">
+      </div>
+      <div class="control">
+        <label><span id="planetLabel">Preset gravitasi</span></label>
+        <select id="planet">
+          <option value="9.81">Bumi / Earth — 9.81</option>
+          <option value="1.62">Bulan / Moon — 1.62</option>
+          <option value="3.71">Mars — 3.71</option>
+          <option value="8.87">Venus — 8.87</option>
+          <option value="24.79">Jupiter — 24.79</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="row">
+        <label class="toggle"><input type="checkbox" id="vectors" checked> <span id="vectorLabel">Vektor kecepatan</span></label>
+        <label class="toggle"><input type="checkbox" id="trail" checked> <span id="trailLabel">Jejak lintasan</span></label>
+      </div>
+      <div class="row" style="margin-top:9px">
+        <label class="toggle"><input type="checkbox" id="gridToggle" checked> <span>Grid</span></label>
+        <label class="toggle"><input type="checkbox" id="autoScale" checked> <span id="autoScaleLabel">Skala otomatis</span></label>
+      </div>
+      <div class="help" style="margin-top:16px">
+        <b id="conceptHead">Konsep:</b>
+        <span id="conceptText"> Gerak horizontal berkecepatan konstan, sedangkan gerak vertikal dipercepat oleh gravitasi.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-h"><span id="simTitle">Simulasi Real-Time</span><span id="stateText">READY</span></div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="sim"></canvas>
+      <div class="overlay">
+        <div class="badge">t = <span id="tNow">0.00</span> s</div>
+        <div class="badge">x = <span id="xNow">0.00</span> m</div>
+        <div class="badge">y = <span id="yNow">0.00</span> m</div>
+        <div class="badge">|v| = <span id="vNow">50.00</span> m/s</div>
+      </div>
+    </div>
+    <div class="controls-bar">
+      <button class="primary" id="launchBtn">▶ Launch</button>
+      <button id="pauseBtn">⏸ Pause</button>
+      <button id="stepBtn">⏭ Step</button>
+      <button id="resetBtn">↺ Reset</button>
+      <button id="recordBtn">＋ Record Data</button>
+    </div>
+  </section>
+
+  <section class="card right">
+    <div class="card-h"><span id="resultTitle">Hasil & Analisis</span><span>∑</span></div>
+    <div class="card-b">
+      <div>
+        <div class="statgrid">
+          <div class="stat"><small id="rangeName">Range</small><strong id="rangeOut">254.84 m</strong></div>
+          <div class="stat"><small id="heightName">Tinggi maks.</small><strong id="maxHOut">63.71 m</strong></div>
+          <div class="stat"><small id="flightName">Waktu terbang</small><strong id="flightOut">7.21 s</strong></div>
+          <div class="stat"><small id="peakName">Waktu ke puncak</small><strong id="peakOut">3.61 s</strong></div>
+        </div>
+        <div class="formula" id="formulaBox">
+          vx = v₀ cos θ<br>
+          vy(t) = v₀ sin θ − gt<br>
+          x(t) = v₀ cos θ · t<br>
+          y(t) = h₀ + v₀ sin θ · t − ½gt²
+        </div>
+      </div>
+      <div>
+        <div class="tabs">
+          <button class="tab active" data-chart="xy">Trajectory</button>
+          <button class="tab" data-chart="yt">y–t</button>
+          <button class="tab" data-chart="vt">v–t</button>
+        </div>
+        <div class="chartbox"><canvas id="chart"></canvas></div>
+      </div>
+      <div style="grid-column:1/-1">
+        <div class="card-h" style="padding:12px 0;border:0"><span id="recordTitle">Rekaman Eksperimen</span><span id="recordCount">0 data</span></div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>#</th><th>θ</th><th>v₀</th><th>g</th><th>R</th><th>Hmax</th><th>T</th></tr></thead>
+            <tbody id="recordsBody"><tr><td colspan="7" style="text-align:center;color:#7893ad">Belum ada data.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<footer>Virtual Physics Lab • Reconstructed educational simulator • HTML5 Canvas + JavaScript • Works offline</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const sim=$('sim'),ctx=sim.getContext('2d'), chart=$('chart'),cctx=chart.getContext('2d');
+let lang='id', running=false, paused=false, t=0, last=0, raf=null, trailPts=[], records=[], chartMode='xy';
+let DPR=Math.min(devicePixelRatio||1,2);
+
+const tr={
+id:{title:'Virtual Physics Lab — Gerak Parabola',subtitle:'Projectile Motion • Kinematika 2D • Ideal tanpa hambatan udara',
+paramTitle:'Parameter Eksperimen',angleLabel:'Sudut peluncuran θ',speedLabel:'Kecepatan awal v₀',
+gravityLabel:'Gravitasi g',heightLabel:'Ketinggian awal h₀',timeScaleLabel:'Kecepatan animasi',
+planetLabel:'Preset gravitasi',vectorLabel:'Vektor kecepatan',trailLabel:'Jejak lintasan',autoScaleLabel:'Skala otomatis',
+conceptHead:'Konsep:',conceptText:' Gerak horizontal berkecepatan konstan, sedangkan gerak vertikal dipercepat oleh gravitasi.',
+simTitle:'Simulasi Real-Time',resultTitle:'Hasil & Analisis',rangeName:'Jangkauan',heightName:'Tinggi maks.',
+flightName:'Waktu terbang',peakName:'Waktu ke puncak',recordTitle:'Rekaman Eksperimen',none:'Belum ada data.'},
+en:{title:'Virtual Physics Lab — Projectile Motion',subtitle:'Projectile Motion • 2D Kinematics • Ideal model without air resistance',
+paramTitle:'Experiment Parameters',angleLabel:'Launch angle θ',speedLabel:'Initial velocity v₀',
+gravityLabel:'Gravity g',heightLabel:'Initial height h₀',timeScaleLabel:'Animation speed',
+planetLabel:'Gravity preset',vectorLabel:'Velocity vectors',trailLabel:'Trajectory trail',autoScaleLabel:'Auto scale',
+conceptHead:'Concept:',conceptText:' Horizontal motion has constant velocity, while vertical motion is accelerated by gravity.',
+simTitle:'Real-Time Simulation',resultTitle:'Results & Analysis',rangeName:'Range',heightName:'Max height',
+flightName:'Flight time',peakName:'Time to peak',recordTitle:'Experiment Records',none:'No data yet.'}
+};
+
+function vals(){
+  return {a:+$('angle').value, v:+$('speed').value, g:+$('gravity').value, h:+$('height').value, ts:+$('timeScale').value};
+}
+function calc(){
+  const {a,v,g,h}=vals(), r=a*Math.PI/180, vx=v*Math.cos(r), vy=v*Math.sin(r);
+  const tf=(vy+Math.sqrt(vy*vy+2*g*h))/g;
+  const range=vx*tf, tp=vy/g, hm=h+vy*vy/(2*g);
+  return {r,vx,vy,tf,range,tp,hm};
+}
+function stateAt(tt){
+  const p=calc(),{g,h}=vals();
+  const x=p.vx*tt, y=Math.max(0,h+p.vy*tt-.5*g*tt*tt), vy=p.vy-g*tt, speed=Math.hypot(p.vx,vy);
+  return {x,y,vx:p.vx,vy,speed};
+}
+function updateLabels(){
+ const v=vals(),p=calc();
+ $('angleVal').textContent=v.a+'°'; $('speedVal').textContent=v.v.toFixed(0)+' m/s';
+ $('gravityVal').textContent=v.g.toFixed(1)+' m/s²'; $('heightVal').textContent=v.h.toFixed(0)+' m';
+ $('timeScaleVal').textContent=v.ts.toFixed(1)+'×';
+ $('rangeOut').textContent=p.range.toFixed(2)+' m'; $('maxHOut').textContent=p.hm.toFixed(2)+' m';
+ $('flightOut').textContent=p.tf.toFixed(2)+' s'; $('peakOut').textContent=p.tp.toFixed(2)+' s';
+ ['title','subtitle','paramTitle','angleLabel','speedLabel','gravityLabel','heightLabel','timeScaleLabel','planetLabel',
+ 'vectorLabel','trailLabel','autoScaleLabel','conceptHead','conceptText','simTitle','resultTitle','rangeName','heightName',
+ 'flightName','peakName','recordTitle'].forEach(k=>$(k).textContent=tr[lang][k]);
+ draw(); drawChart();
+}
+function resize(){
+  const rect=sim.getBoundingClientRect(); sim.width=rect.width*DPR;sim.height=rect.height*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  const cr=chart.getBoundingClientRect();chart.width=cr.width*DPR;chart.height=cr.height*DPR;cctx.setTransform(DPR,0,0,DPR,0,0);
+  draw();drawChart();
+}
+function scaleInfo(){
+ const p=calc(),w=sim.clientWidth,h=sim.clientHeight, pad=48;
+ let maxX=Math.max(p.range*1.08,20), maxY=Math.max(p.hm*1.3,10);
+ if(!$('autoScale').checked){maxX=300;maxY=120}
+ return {w,h,pad,maxX,maxY,sx:(w-2*pad)/maxX,sy:(h-2*pad)/maxY};
+}
+function drawGrid(s){
+ const {w,h,pad,maxX,maxY,sx,sy}=s;
+ ctx.clearRect(0,0,w,h);
+ if($('gridToggle').checked){
+   ctx.strokeStyle='#17314a';ctx.lineWidth=1;
+   const nx=10,ny=8;
+   for(let i=0;i<=nx;i++){let x=pad+(w-2*pad)*i/nx;ctx.beginPath();ctx.moveTo(x,pad);ctx.lineTo(x,h-pad);ctx.stroke()}
+   for(let i=0;i<=ny;i++){let y=pad+(h-2*pad)*i/ny;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke()}
+ }
+ ctx.strokeStyle='#6d8da8';ctx.lineWidth=1.5;
+ ctx.beginPath();ctx.moveTo(pad,h-pad);ctx.lineTo(w-pad,h-pad);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(pad,pad);ctx.lineTo(pad,h-pad);ctx.stroke();
+ ctx.fillStyle='#7896b0';ctx.font='11px Segoe UI';
+ for(let i=0;i<=5;i++){let x=pad+(w-2*pad)*i/5;ctx.fillText((maxX*i/5).toFixed(0)+' m',x-10,h-pad+18)}
+ for(let i=1;i<=4;i++){let y=h-pad-(h-2*pad)*i/4;ctx.fillText((maxY*i/4).toFixed(0)+' m',7,y+4)}
+}
+function physToPx(x,y,s){return {x:s.pad+x*s.sx,y:s.h-s.pad-y*s.sy}}
+function arrow(x1,y1,x2,y2,color,label){
+ ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+ const ang=Math.atan2(y2-y1,x2-x1),L=8;
+ ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-L*Math.cos(ang-.5),y2-L*Math.sin(ang-.5));ctx.lineTo(x2-L*Math.cos(ang+.5),y2-L*Math.sin(ang+.5));ctx.closePath();ctx.fill();
+ ctx.font='11px Segoe UI';ctx.fillText(label,x2+6,y2-3)
+}
+function draw(){
+ const s=scaleInfo(),p=calc();drawGrid(s);
+ // ideal curve
+ ctx.setLineDash([6,6]);ctx.strokeStyle='#39637d';ctx.lineWidth=1.5;ctx.beginPath();
+ for(let i=0;i<=160;i++){let tt=p.tf*i/160,q=stateAt(tt),z=physToPx(q.x,q.y,s); i?ctx.lineTo(z.x,z.y):ctx.moveTo(z.x,z.y)}ctx.stroke();ctx.setLineDash([]);
+ // trail
+ if($('trail').checked && trailPts.length){
+  ctx.strokeStyle='#31d6c5';ctx.lineWidth=3;ctx.beginPath();
+  trailPts.forEach((q,i)=>{let z=physToPx(q.x,q.y,s);i?ctx.lineTo(z.x,z.y):ctx.moveTo(z.x,z.y)});ctx.stroke()
+ }
+ const q=stateAt(Math.min(t,p.tf)),z=physToPx(q.x,q.y,s);
+ ctx.fillStyle='#ffd166';ctx.shadowBlur=18;ctx.shadowColor='#ffd166';ctx.beginPath();ctx.arc(z.x,z.y,8,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+ // peak marker
+ const peak=physToPx(p.vx*p.tp,p.hm,s);ctx.fillStyle='#ff7f9b';ctx.beginPath();ctx.arc(peak.x,peak.y,4,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#d4e4f4';ctx.font='11px Segoe UI';ctx.fillText('Hmax',peak.x+7,peak.y-7);
+ if($('vectors').checked){
+  const k=1.2;arrow(z.x,z.y,z.x+q.vx*k,z.y,'#5fc5ff','Vx');
+  arrow(z.x,z.y,z.x,z.y-q.vy*k,'#ff7f9b','Vy');
+ }
+ $('tNow').textContent=Math.min(t,p.tf).toFixed(2);$('xNow').textContent=q.x.toFixed(2);$('yNow').textContent=q.y.toFixed(2);$('vNow').textContent=q.speed.toFixed(2);
+}
+function drawChart(){
+ const w=chart.clientWidth,h=chart.clientHeight,pad=34,p=calc();cctx.clearRect(0,0,w,h);
+ cctx.strokeStyle='#28445e';cctx.lineWidth=1;cctx.beginPath();cctx.moveTo(pad,10);cctx.lineTo(pad,h-pad);cctx.lineTo(w-10,h-pad);cctx.stroke();
+ let pts=[],xmax=1,ymax=1,label='';
+ if(chartMode==='xy'){xmax=p.range||1;ymax=p.hm||1;label='y(x)';for(let i=0;i<=100;i++){let tt=p.tf*i/100,q=stateAt(tt);pts.push([q.x,q.y])}}
+ if(chartMode==='yt'){xmax=p.tf||1;ymax=p.hm||1;label='y(t)';for(let i=0;i<=100;i++){let tt=p.tf*i/100,q=stateAt(tt);pts.push([tt,q.y])}}
+ if(chartMode==='vt'){xmax=p.tf||1;ymax=Math.max(vals().v,stateAt(p.tf).speed)||1;label='|v|(t)';for(let i=0;i<=100;i++){let tt=p.tf*i/100,q=stateAt(tt);pts.push([tt,q.speed])}}
+ ymax*=1.12;
+ cctx.strokeStyle='#31d6c5';cctx.lineWidth=2.2;cctx.beginPath();
+ pts.forEach((q,i)=>{let x=pad+q[0]/xmax*(w-pad-14),y=h-pad-q[1]/ymax*(h-pad-18);i?cctx.lineTo(x,y):cctx.moveTo(x,y)});cctx.stroke();
+ cctx.fillStyle='#9db5ca';cctx.font='11px Segoe UI';cctx.fillText(label,pad+5,17);cctx.fillText('0',pad-11,h-pad+14);
+ cctx.fillText(xmax.toFixed(1),w-42,h-pad+14);cctx.fillText(ymax.toFixed(1),2,20);
+}
+function setState(s){$('stateText').textContent=s}
+function reset(){
+ running=false;paused=false;t=0;last=0;trailPts=[];cancelAnimationFrame(raf);setState('READY');draw()
+}
+function launch(){
+ reset();running=true;setState('RUNNING');last=performance.now();raf=requestAnimationFrame(loop)
+}
+function loop(now){
+ if(!running||paused)return;
+ const dt=Math.min((now-last)/1000,.05)*vals().ts;last=now;t+=dt;const p=calc();
+ const q=stateAt(Math.min(t,p.tf));trailPts.push({x:q.x,y:q.y});if(trailPts.length>700)trailPts.shift();
+ if(t>=p.tf){t=p.tf;running=false;setState('LANDED');draw();return}
+ draw();raf=requestAnimationFrame(loop)
+}
+function pause(){
+ if(!running && t===0)return;
+ paused=!paused;setState(paused?'PAUSED':'RUNNING');
+ $('pauseBtn').textContent=paused?'▶ Resume':'⏸ Pause';
+ if(!paused){running=true;last=performance.now();raf=requestAnimationFrame(loop)}
+}
+function step(){
+ if(running){paused=true;cancelAnimationFrame(raf)}
+ const p=calc();t=Math.min(t+.05,p.tf);const q=stateAt(t);trailPts.push({x:q.x,y:q.y});setState(t>=p.tf?'LANDED':'STEP');draw()
+}
+function record(){
+ const v=vals(),p=calc();records.push({a:v.a,v:v.v,g:v.g,r:p.range,h:p.hm,t:p.tf});renderRecords()
+}
+function renderRecords(){
+ const body=$('recordsBody');$('recordCount').textContent=records.length+' data';
+ if(!records.length){body.innerHTML=`<tr><td colspan="7" style="text-align:center;color:#7893ad">${tr[lang].none}</td></tr>`;return}
+ body.innerHTML=records.map((r,i)=>`<tr><td>${i+1}</td><td>${r.a}°</td><td>${r.v}</td><td>${r.g.toFixed(2)}</td><td>${r.r.toFixed(2)}</td><td>${r.h.toFixed(2)}</td><td>${r.t.toFixed(2)}</td></tr>`).join('')
+}
+function exportCSV(){
+ if(!records.length)record();
+ let csv='No,Angle_deg,InitialVelocity_mps,Gravity_mps2,Range_m,MaxHeight_m,FlightTime_s\n';
+ csv+=records.map((r,i)=>[i+1,r.a,r.v,r.g,r.r,r.h,r.t].join(',')).join('\n');
+ const blob=new Blob([csv],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='projectile_motion_experiment.csv';a.click();URL.revokeObjectURL(a.href)
+}
+
+['angle','speed','gravity','height','timeScale','vectors','trail','gridToggle','autoScale'].forEach(id=>$(id).addEventListener('input',()=>{if(id!=='timeScale'&&running)reset();updateLabels()}));
+$('planet').addEventListener('change',e=>{if(e.target.value!=='custom'){$('gravity').value=e.target.value;reset();updateLabels()}});
+$('launchBtn').onclick=launch;$('pauseBtn').onclick=pause;$('stepBtn').onclick=step;$('resetBtn').onclick=reset;$('recordBtn').onclick=record;
+$('clearDataBtn').onclick=()=>{records=[];renderRecords()};$('exportBtn').onclick=exportCSV;
+$('langBtn').onclick=()=>{lang=lang==='id'?'en':'id';updateLabels();renderRecords()};
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');chartMode=b.dataset.chart;drawChart()});
+new ResizeObserver(resize).observe(document.body);
+updateLabels();renderRecords();resize();
+</script>
+</body>
+</html>
